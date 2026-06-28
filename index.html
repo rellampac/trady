@@ -327,7 +327,7 @@ function computeStats(tradeList, capital) {
   var tradesPerMonth = ml.length > 0 ? (real.filter(function(x) { return x.date >= "2026-01-01"; }).length / ml.length).toFixed(1) : "0";
 
   return {
-    real: real, ajuste: ajuste, tot: tot, saldo: saldo,
+    real: real, ajuste: ajuste, tot: tot, saldo: saldo, peak: peak,
     wins: wins, losses: losses, wr: wr, pct: pct,
     best: best, worst: worst, avgW: avgW, avgL: avgL,
     factor: factor, maxW: maxW, maxL: maxL,
@@ -354,7 +354,7 @@ function renderStatGrid(s, colPrefix) {
     statCard("💚", "Prom. win", f(s.avgW), "c1 stat"),
     statCard("🔴", "Prom. loss", "−$" + s.avgL.toFixed(2), "c5 stat"),
     statCard("⚦️", "Factor", s.factor, (parseFloat(s.factor) >= 1 ? "c1" : "c5") + " stat"),
-    statCard("📉", "Drawdown", "−$" + s.maxDD.toFixed(0), "c5 stat"),
+    statCard("📉", "Drawdown", "−$" + s.maxDD.toFixed(0) + " / −" + (s.capital + Math.max(0,s.peak) > 0 ? (s.maxDD/(s.capital+Math.max(0,s.peak))*100).toFixed(1) : "0") + "%", "c5 stat"),
     statCard("🔥", "Racha actual", (s.rachaDir === 1 ? "+" : "−") + s.racha + " seg.", (s.rachaDir === 1 ? "c1" : "c5") + " stat"),
     statCard("🏆", "Racha win", s.maxW + " trades", "c1 stat"),
     statCard("⛔", "Racha loss", s.maxL + " trades", "c5 stat"),
