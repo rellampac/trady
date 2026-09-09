@@ -49,6 +49,7 @@ header h1{font-family:var(--font-head);font-size:1.15rem;font-weight:700;
 .broker-qf{background:rgba(63,185,80,.06);border:1px solid rgba(63,185,80,.15)}
 .broker-ibkr{background:rgba(227,179,65,.06);border:1px solid rgba(227,179,65,.15)}
 .broker-total{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.15)}.broker-bitunix{background:rgba(88,166,255,.06);border:1px solid rgba(88,166,255,.15)}
+.broker-aura{background:rgba(188,140,255,.06);border:1px solid rgba(188,140,255,.15)}
 .broker-label{font-family:var(--font-head);font-size:.9rem;font-weight:700}
 
 /* STAT GRID */
@@ -73,6 +74,7 @@ canvas{max-height:280px}
 .pill-fx{background:rgba(63,185,80,.12);color:var(--green)}
 .pill-qf{background:rgba(63,185,80,.12);color:var(--green)}
 .pill-ibkr{background:rgba(227,179,65,.12);color:var(--yellow)}.pill-bitunix{background:rgba(88,166,255,.12);color:var(--blue)}
+.pill-aura{background:rgba(188,140,255,.12);color:var(--purple)}
 
 /* TABLE */
 table{width:100%;border-collapse:collapse;font-size:.78rem}
@@ -155,7 +157,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <h3>➕ Añadir operación</h3>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="fg"><label>Símbolo</label><input id="mS" placeholder="TSLA, BTC/USDT..."></div>
-      <div class="fg"><label>Broker</label><select id="mBrok"><option value="qf">🟢 Quantfury</option><option value="ibkr">🟡 IBKR</option><option value="bitunix">🔵 Bitunix</option></select></div>
+      <div class="fg"><label>Broker</label><select id="mBrok"><option value="qf">🟢 Quantfury</option><option value="ibkr">🟡 IBKR</option><option value="bitunix">🔵 Bitunix</option><option value="aura">🛡️ AURA (FundedNext)</option></select></div>
       <div class="fg"><label>Tipo</label><select id="mT"><option value="stock">Acción/ETF</option><option value="crypto">Crypto</option><option value="futures">Futuro</option><option value="forex">Forex</option></select></div>
       <div class="fg"><label>Fecha</label><input type="date" id="mD"></div>
     </div>
@@ -171,9 +173,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
 <script>
 // ========== CONFIGURATION ==========
 var SHEET_ID = "12lShXuI_hwsBXua4Bmnj_DV6K49y4_-ag7AqIWgDpmE";
-var CAP_QF = 2100, CAP_IBKR = 6350, CAP_BITUNIX = 279;
+var CAP_QF = 2100, CAP_IBKR = 6350, CAP_BITUNIX = 279, CAP_AURA = 100000;
 var AJUSTE_SYMS = ["AJUSTE", "AJUSTE_MAYO"];
-var CONFIG_SYMS = ["CONFIG_QF", "CONFIG_IBKR", "CONFIG_BITUNIX"];
+var CONFIG_SYMS = ["CONFIG_QF", "CONFIG_IBKR", "CONFIG_BITUNIX", "CONFIG_AURA"];
+// Cuentas fondeadas: se muestran en su propia tarjeta y quedan fuera del Total Consolidado
+var FUNDED_BROKERS = ["aura", "fondeo"];
 
 // ========== GLOBALS ==========
 var trades = [], extras = [], target = 0;
@@ -207,6 +211,7 @@ function processSheetData(data) {
     if (t.sym === "CONFIG_QF") CAP_QF = t.pnl;
     else if (t.sym === "CONFIG_IBKR") CAP_IBKR = t.pnl;
     else if (t.sym === "CONFIG_BITUNIX") CAP_BITUNIX = t.pnl;
+    else if (t.sym === "CONFIG_AURA") CAP_AURA = t.pnl;
   });
   // Remove CONFIG rows from trades
   trades = trades.filter(function(t) { return CONFIG_SYMS.indexOf(t.sym) === -1; });
@@ -339,10 +344,10 @@ function computeStats(tradeList, capital) {
 }
 
 function renderStatGrid(s, colPrefix) {
-  var c1 = colPrefix === "qf" ? "c1" : (colPrefix === "ibkr" ? "c6" : (colPrefix === "bitunix" ? "c2" : "c2"));
-  var saldoLabel = colPrefix === "qf" ? "Saldo QF" : (colPrefix === "ibkr" ? "Saldo IBKR" : (colPrefix === "bitunix" ? "Saldo Bitunix" : "Saldo Total"));
-  var pnlLabel = colPrefix === "qf" ? "P&L QF" : (colPrefix === "ibkr" ? "P&L IBKR" : (colPrefix === "bitunix" ? "P&L Bitunix" : "P&L Total"));
-  var capLabel = colPrefix === "total" ? "Capital total" : "Capital ini.";
+  var c1 = colPrefix === "qf" ? "c1" : (colPrefix === "ibkr" ? "c6" : (colPrefix === "bitunix" ? "c2" : (colPrefix === "aura" ? "c4" : "c2")));
+  var saldoLabel = colPrefix === "qf" ? "Saldo QF" : (colPrefix === "ibkr" ? "Saldo IBKR" : (colPrefix === "bitunix" ? "Saldo Bitunix" : (colPrefix === "aura" ? "Saldo AURA" : "Saldo Total")));
+  var pnlLabel = colPrefix === "qf" ? "P&L QF" : (colPrefix === "ibkr" ? "P&L IBKR" : (colPrefix === "bitunix" ? "P&L Bitunix" : (colPrefix === "aura" ? "P&L AURA" : "P&L Total")));
+  var capLabel = colPrefix === "total" ? "Capital total" : (colPrefix === "aura" ? "Cuenta (fondeo)" : "Capital ini.");
   return [
     statCard("💰", saldoLabel, "$" + s.saldo.toLocaleString("es-ES", {minimumFractionDigits:2, maximumFractionDigits:2}), c1 + " stat"),
     statCard("📈", pnlLabel, f(s.tot), (s.tot >= 0 ? "c1" : "c5") + " stat"),
@@ -377,6 +382,7 @@ function buildUI() {
       <span class="pill pill-qf">QF</span>
       <span class="pill pill-ibkr">IBKR</span>
       <span class="pill pill-bitunix">BTX</span>
+      <span class="pill pill-aura">AURA</span>
       · ${trades.filter(function(t){return AJUSTE_SYMS.indexOf(t.sym)===-1;}).length} trades
     </span>
   </div>
@@ -411,6 +417,14 @@ function buildUI() {
       <div style="font-size:.72rem;color:var(--muted)">Capital inicial: $${CAP_BITUNIX.toLocaleString("es-ES")}</div></div>
     </div>
     <div class="sgrid" id="sg-bitunix"></div>
+  </div>
+  <div class="card" style="--accent:linear-gradient(90deg,var(--purple),#8957e5)">
+    <div class="broker-header broker-aura">
+      <span style="font-size:1.4rem">🛡️</span>
+      <div><div class="broker-label" style="color:var(--purple)">AURA — FundedNext ($100K)</div>
+      <div style="font-size:.72rem;color:var(--muted)">Cuenta fondeada · NDX100 + XAUUSD + EURUSD (MT5 EA) · fuera del Total Consolidado</div></div>
+    </div>
+    <div class="sgrid" id="sg-aura"></div>
   </div>
   <div class="card" style="--accent:linear-gradient(90deg,var(--blue),var(--purple))">
     <h3>📅 Calendario P&L</h3>
@@ -458,7 +472,7 @@ function buildUI() {
     <div class="filters">
       <input class="fi" id="fS" placeholder="Símbolo...">
       <select class="fi" id="fT"><option value="">Todos tipos</option><option value="stock">📈 Acciones</option><option value="crypto">🪙 Crypto</option><option value="futures">⚡ Futuros</option><option value="forex">💱 Forex</option></select>
-      <select class="fi" id="fBrok"><option value="">Todos brokers</option><option value="qf">🟢 QF</option><option value="ibkr">🟡 IBKR</option><option value="bitunix">🔵 Bitunix</option></select>
+      <select class="fi" id="fBrok"><option value="">Todos brokers</option><option value="qf">🟢 QF</option><option value="ibkr">🟡 IBKR</option><option value="bitunix">🔵 Bitunix</option><option value="aura">🛡️ AURA</option></select>
       <select class="fi" id="fR"><option value="">Todos</option><option value="w">✅ Ganadores</option><option value="l">❌ Perdedores</option></select>
       <input class="fi" type="date" id="fA">
       <input class="fi" type="date" id="fZ">
@@ -476,20 +490,26 @@ function buildUI() {
 
 // ========== MAIN RENDER ==========
 function go() {
-  var allT = trades.slice().sort(function(a,b){return(a.date||"").localeCompare(b.date||"");});
+  // Total Consolidado = solo brokers personales. Las cuentas fondeadas (AURA, fondeo) tienen su propia tarjeta.
+  var allT = trades.slice().sort(function(a,b){return(a.date||"").localeCompare(b.date||"");})
+    .filter(function(x){return FUNDED_BROKERS.indexOf(x.broker)===-1;});
   var qfT = allT.filter(function(x){return x.broker==="qf";});
   var ibkrT = allT.filter(function(x){return x.broker==="ibkr";});
   var bitunixT = allT.filter(function(x){return x.broker==="bitunix";});
+  var auraT = trades.slice().sort(function(a,b){return(a.date||"").localeCompare(b.date||"");})
+    .filter(function(x){return x.broker==="aura";});
 
   var sqf = computeStats(qfT, CAP_QF);
   var sibkr = computeStats(ibkrT, CAP_IBKR);
   var sbitunix = computeStats(bitunixT, CAP_BITUNIX);
   var stot = computeStats(allT, CAP_QF + CAP_IBKR + CAP_BITUNIX);
+  var saura = computeStats(auraT, CAP_AURA);
 
   document.getElementById("sg-qf").innerHTML = renderStatGrid(sqf, "qf");
   document.getElementById("sg-ibkr").innerHTML = renderStatGrid(sibkr, "ibkr");
   document.getElementById("sg-bitunix").innerHTML = renderStatGrid(sbitunix, "bitunix");
   document.getElementById("sg-total").innerHTML = renderStatGrid(stot, "total");
+  document.getElementById("sg-aura").innerHTML = renderStatGrid(saura, "aura");
 
   // ===== EQUITY CURVE =====
   var cum = stot.ajuste, elabs = [], edata = [];
